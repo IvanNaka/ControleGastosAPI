@@ -2,6 +2,11 @@
 
 API RESTful desenvolvida em .NET 8 para gerenciamento de gastos pessoais, permitindo o controle de receitas e despesas organizadas por categorias e pessoas.
 
+## Hospedagem
+
+- **Back End Hospedado em: https://controlegastosapi-chapc5fgg5g6acah.brazilsouth-01.azurewebsites.net**
+- **Front End Hospedado em: https://main.d2zasgf9hme6sh.amplifyapp.com/**
+
 ## Descrição
 
 O Controle Gastos API é uma aplicação backend robusta que oferece funcionalidades completas para gestão financeira pessoal. O sistema permite que usuários registrem e monitorem suas transações financeiras, categorizem gastos e receitas, e associem movimentações a diferentes pessoas.
