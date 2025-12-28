@@ -23,17 +23,24 @@ namespace ControleGastos.Api
 
         public void ConfigureServices(IServiceCollection services)
         {
-            // Configure Azure AD Authentication
+            // Configure Azure AD Authentication for multi-tenant + personal accounts
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddJwtBearer(options =>
                     {
                         options.Authority = "https://login.microsoftonline.com/common/v2.0";
-                        options.Audience = Configuration.GetSection("AzureAd:ClientId").Get<string>();
+                        options.Audience = Configuration["AzureAd:ClientId"];
                         options.TokenValidationParameters = new TokenValidationParameters
                         {
-                            ValidateIssuer = false, // Desabilite temporariamente para testar
+                            ValidateIssuer = false, // Required for personal accounts from different tenants
                             ValidateAudience = true,
-                            ValidateLifetime = true
+                            ValidateLifetime = true,
+                            ValidAudience = Configuration["AzureAd:ClientId"],
+                            // Accept tokens from any Microsoft tenant
+                            ValidIssuers = new[]
+                            {
+                                "https://login.microsoftonline.com/common/v2.0",
+                                "https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0"
+                            }
                         };
                     });
 
@@ -43,7 +50,7 @@ namespace ControleGastos.Api
                     options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
             // Configure CORS
-            var allowedOrigins = Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+            var allowedOrigins = Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] { "http://localhost:5173" };
 
             services.AddCors(options =>
             {
@@ -54,7 +61,6 @@ namespace ControleGastos.Api
                            .AllowAnyHeader()
                            .AllowCredentials();
                 });
-
             });
 
             services.AddScoped<ICategoriaRepository, CategoriaRepository>();
@@ -119,14 +125,15 @@ namespace ControleGastos.Api
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "ControleGastos API v1");
+            });
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ControleGastos API v1");
-                });
             }
 
             app.UseHttpsRedirection();
