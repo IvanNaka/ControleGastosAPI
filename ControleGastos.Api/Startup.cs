@@ -28,7 +28,7 @@ namespace ControleGastos.Api
                     .AddJwtBearer(options =>
                     {
                         options.Authority = "https://login.microsoftonline.com/common/v2.0";
-                        options.Audience = "a0e8ed63-ce40-4d38-8e25-2f3cc5e581f1";
+                        options.Audience = Configuration.GetSection("AzureAd:ClientId").Get<string>();
                         options.TokenValidationParameters = new TokenValidationParameters
                         {
                             ValidateIssuer = false, // Desabilite temporariamente para testar
