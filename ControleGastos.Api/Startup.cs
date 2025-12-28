@@ -31,69 +31,10 @@ namespace ControleGastos.Api
                         options.Audience = Configuration["AzureAd:ClientId"];
                         options.TokenValidationParameters = new TokenValidationParameters
                         {
-                            ValidateIssuer = false, // Required for personal accounts from different tenants
+                            ValidateIssuer = false, 
                             ValidateAudience = true,
                             ValidateLifetime = true,
                             ValidAudience = Configuration["AzureAd:ClientId"]
-                        };
-
-                        // Enhanced logging for debugging
-                        options.Events = new JwtBearerEvents
-                        {
-                            OnMessageReceived = context =>
-                            {
-                                var token = context.Request.Headers["Authorization"].ToString();
-                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
-                                logger.LogInformation($"🔑 Token received: {(!string.IsNullOrEmpty(token) ? "YES" : "NO")}");
-                                logger.LogInformation($"📍 Request Path: {context.Request.Path}");
-                                logger.LogInformation($"🌐 Origin: {context.Request.Headers["Origin"]}");
-                                return Task.CompletedTask;
-                            },
-                            OnTokenValidated = context =>
-                            {
-                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
-                                logger.LogInformation("✅ Token validated successfully");
-                                
-                                var claims = context.Principal?.Claims;
-                                if (claims != null)
-                                {
-                                    foreach (var claim in claims.Take(10))
-                                    {
-                                        logger.LogInformation($"   Claim: {claim.Type} = {claim.Value}");
-                                    }
-                                }
-                                return Task.CompletedTask;
-                            },
-                            OnAuthenticationFailed = context =>
-                            {
-                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
-                                logger.LogError($"❌ Authentication failed: {context.Exception.Message}");
-                                logger.LogError($"   Exception Type: {context.Exception.GetType().Name}");
-                                
-                                if (context.Exception.InnerException != null)
-                                {
-                                    logger.LogError($"   Inner Exception: {context.Exception.InnerException.Message}");
-                                }
-                                
-                                return Task.CompletedTask;
-                            },
-                            OnChallenge = context =>
-                            {
-                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
-                                logger.LogWarning($"⚠️ Challenge triggered");
-                                logger.LogWarning($"   Error: {context.Error}");
-                                logger.LogWarning($"   ErrorDescription: {context.ErrorDescription}");
-                                logger.LogWarning($"   AuthenticateFailure: {context.AuthenticateFailure?.Message}");
-                                return Task.CompletedTask;
-                            },
-                            OnForbidden = context =>
-                            {
-                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
-                                logger.LogWarning("🚫 Access forbidden (403)");
-                                logger.LogWarning($"   User: {context.HttpContext.User?.Identity?.Name ?? "Anonymous"}");
-                                logger.LogWarning($"   IsAuthenticated: {context.HttpContext.User?.Identity?.IsAuthenticated}");
-                                return Task.CompletedTask;
-                            }
                         };
                     });
 
@@ -147,7 +88,6 @@ namespace ControleGastos.Api
                     }
                 });
 
-                // Configure Swagger to use Bearer token
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",

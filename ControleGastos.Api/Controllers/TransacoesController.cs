@@ -20,23 +20,6 @@ namespace ControleGastos.Api.Controllers
             _transacaoService = transacaoService;
             _usuarioService = usuarioService;
         }
-
-        /// <summary>
-        /// Test endpoint to verify authentication works
-        /// </summary>
-        [HttpGet("test-auth")]
-        public IActionResult TestAuth()
-        {
-            var claims = User.Claims.Select(c => new { c.Type, c.Value });
-            return Ok(new
-            {
-                Message = "✅ Authentication successful!",
-                IsAuthenticated = User.Identity?.IsAuthenticated,
-                Name = User.Identity?.Name,
-                Claims = claims
-            });
-        }
-
         /// <summary>
         /// Obtém todas as transações do usuário autenticado
         /// </summary>
@@ -55,7 +38,6 @@ namespace ControleGastos.Api.Controllers
                 {
                     return NotFound(new { 
                         message = "Usuário não encontrado. Por favor, registre-se primeiro.",
-                        azureAdId = azureAdId  // Include this for debugging
                     });
                 }
 
