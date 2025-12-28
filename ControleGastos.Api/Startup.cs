@@ -131,10 +131,9 @@ namespace ControleGastos.Api
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "ControleGastos API v1");
             });
 
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
+
+            app.UseDeveloperExceptionPage();
+
 
             app.UseHttpsRedirection();
             app.UseRouting();
