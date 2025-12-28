@@ -31,7 +31,6 @@ namespace ControleGastos.Application.DTOs
         [Required]
         public FinalidadeCategoria Finalidade { get; set; }
 
-        [Required]
         public Guid UsuarioId { get; set; }
     }
 

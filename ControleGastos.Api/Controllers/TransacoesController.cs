@@ -1,46 +1,74 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ControleGastos.Application.Interfaces;
 using ControleGastos.Application.DTOs;
 using ControleGastos.Domain.Enums;
+using ControleGastos.Api.Extensions;
 
 namespace ControleGastos.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TransacoesController : ControllerBase
     {
         private readonly ITransacaoService _transacaoService;
+        private readonly IUsuarioService _usuarioService;
 
-        public TransacoesController(ITransacaoService transacaoService)
+        public TransacoesController(ITransacaoService transacaoService, IUsuarioService usuarioService)
         {
             _transacaoService = transacaoService;
+            _usuarioService = usuarioService;
         }
 
 
         /// <summary>
-        /// Obtém todas as transações de um usuário
+        /// Obtém todas as transações do usuário autenticado
         /// </summary>
-        [HttpGet("usuario/{usuarioId}")]
+        [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<TransacaoDto>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<TransacaoDto>>> GetTransacoesByUsuario(Guid usuarioId)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<TransacaoDto>>> GetTransacoes()
         {
-            var transacoes = await _transacaoService.GetByUsuarioIdAsync(usuarioId);
+            var azureAdId = User.GetAzureAdId();
+            var usuario = await _usuarioService.GetByAzureAdIdAsync(azureAdId);
+
+            if (usuario == null)
+            {
+                return NotFound(new { message = "Usuário não encontrado. Por favor, registre-se primeiro." });
+            }
+
+            var transacoes = await _transacaoService.GetByUsuarioIdAsync(usuario.Id);
             return Ok(transacoes);
         }
 
 
         /// <summary>
-        /// Cria uma nova transação
+        /// Cria uma nova transação para o usuário autenticado
         /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(TransacaoDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<TransacaoDto>> CreateTransacao([FromBody] CreateTransacaoDto createDto)
         {
             try
             {
+                var azureAdId = User.GetAzureAdId();
+                var usuario = await _usuarioService.GetByAzureAdIdAsync(azureAdId);
+
+                if (usuario == null)
+                {
+                    return NotFound(new { message = "Usuário não encontrado. Por favor, registre-se primeiro." });
+                }
+
+                // Sobrescreve o UsuarioId com o ID do usuário autenticado
+                createDto.UsuarioId = usuario.Id;
+
                 var transacao = await _transacaoService.CreateAsync(createDto);
-                return CreatedAtAction(nameof(CreateTransacao), new { id = transacao.Id }, transacao);
+                return CreatedAtAction(nameof(GetTransacoes), new { id = transacao.Id }, transacao);
             }
             catch (ArgumentException ex)
             {
@@ -49,11 +77,12 @@ namespace ControleGastos.Api.Controllers
         }
 
         /// <summary>
-        /// Deleta uma transação
+        /// Deleta uma transação do usuário autenticado
         /// </summary>
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> DeleteTransacao(Guid id)
         {
             var deleted = await _transacaoService.DeleteAsync(id);

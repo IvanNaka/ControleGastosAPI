@@ -51,7 +51,6 @@ namespace ControleGastos.Application.DTOs
         [Required]
         public Guid CategoriaId { get; set; }
 
-        [Required]
         public Guid UsuarioId { get; set; }
     }
 

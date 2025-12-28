@@ -28,7 +28,6 @@ namespace ControleGastos.Application.DTOs
         [Range(0, 150)]
         public int Idade { get; set; }
 
-        [Required]
         public Guid UsuarioId { get; set; }
     }
 

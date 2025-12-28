@@ -5,6 +5,8 @@ using ControleGastos.Application.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using ControleGastos.Domain.Interfaces.Repositories;
+using Microsoft.Identity.Web;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 
 namespace ControleGastos.Api
@@ -20,6 +22,10 @@ namespace ControleGastos.Api
 
         public void ConfigureServices(IServiceCollection services)
         {
+            // Configure Azure AD Authentication
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd"));
+
             services.AddAuthorization();
 
             services.AddDbContext<ControleGastosDbContext>(options =>
@@ -68,6 +74,32 @@ namespace ControleGastos.Api
                     {
                         Name = "ControleGastos",
                         Url = new Uri("https://github.com/IvanNaka/ControleGastosAPI")
+                    }
+                });
+
+                // Configure Swagger to use Bearer token
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
                     }
                 });
             });
