@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+Ôªøusing Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using ControleGastos.Application.Interfaces;
 using ControleGastos.Application.DTOs;
@@ -21,9 +21,24 @@ namespace ControleGastos.Api.Controllers
             _usuarioService = usuarioService;
         }
 
+        /// <summary>
+        /// Test endpoint to verify authentication works
+        /// </summary>
+        [HttpGet("test-auth")]
+        public IActionResult TestAuth()
+        {
+            var claims = User.Claims.Select(c => new { c.Type, c.Value });
+            return Ok(new
+            {
+                Message = "‚úÖ Authentication successful!",
+                IsAuthenticated = User.Identity?.IsAuthenticated,
+                Name = User.Identity?.Name,
+                Claims = claims
+            });
+        }
 
         /// <summary>
-        /// ObtÈm todas as transaÁıes do usu·rio autenticado
+        /// Obt√©m todas as transa√ß√µes do usu√°rio autenticado
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<TransacaoDto>), StatusCodes.Status200OK)]
@@ -31,21 +46,35 @@ namespace ControleGastos.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<IEnumerable<TransacaoDto>>> GetTransacoes()
         {
-            var azureAdId = User.GetAzureAdId();
-            var usuario = await _usuarioService.GetByAzureAdIdAsync(azureAdId);
-
-            if (usuario == null)
+            try
             {
-                return NotFound(new { message = "Usu·rio n„o encontrado. Por favor, registre-se primeiro." });
-            }
+                var azureAdId = User.GetAzureAdId();
+                var usuario = await _usuarioService.GetByAzureAdIdAsync(azureAdId);
 
-            var transacoes = await _transacaoService.GetByUsuarioIdAsync(usuario.Id);
-            return Ok(transacoes);
+                if (usuario == null)
+                {
+                    return NotFound(new { 
+                        message = "Usu√°rio n√£o encontrado. Por favor, registre-se primeiro.",
+                        azureAdId = azureAdId  // Include this for debugging
+                    });
+                }
+
+                var transacoes = await _transacaoService.GetByUsuarioIdAsync(usuario.Id);
+                return Ok(transacoes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { 
+                    message = "Erro ao buscar transa√ß√µes",
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
+            }
         }
 
 
         /// <summary>
-        /// Cria uma nova transaÁ„o para o usu·rio autenticado
+        /// Cria uma nova transa√ß√£o para o usu√°rio autenticado
         /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(TransacaoDto), StatusCodes.Status201Created)]
@@ -61,10 +90,10 @@ namespace ControleGastos.Api.Controllers
 
                 if (usuario == null)
                 {
-                    return NotFound(new { message = "Usu·rio n„o encontrado. Por favor, registre-se primeiro." });
+                    return NotFound(new { message = "Usu√°rio n√£o encontrado. Por favor, registre-se primeiro." });
                 }
 
-                // Sobrescreve o UsuarioId com o ID do usu·rio autenticado
+                // Sobrescreve o UsuarioId com o ID do usu√°rio autenticado
                 createDto.UsuarioId = usuario.Id;
 
                 var transacao = await _transacaoService.CreateAsync(createDto);
@@ -77,7 +106,7 @@ namespace ControleGastos.Api.Controllers
         }
 
         /// <summary>
-        /// Deleta uma transaÁ„o do usu·rio autenticado
+        /// Deleta uma transa√ß√£o do usu√°rio autenticado
         /// </summary>
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -89,7 +118,7 @@ namespace ControleGastos.Api.Controllers
             
             if (!deleted)
             {
-                return NotFound(new { message = $"TransaÁ„o com ID {id} n„o encontrada" });
+                return NotFound(new { message = $"Transa√ß√£o com ID {id} n√£o encontrada" });
             }
 
             return NoContent();
