@@ -1,12 +1,13 @@
-﻿using ControleGastos.Infrastructure;
-using ControleGastos.Infrastructure.Repositories;
-using ControleGastos.Application.Interfaces;
+﻿using ControleGastos.Application.Interfaces;
 using ControleGastos.Application.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using ControleGastos.Domain.Interfaces.Repositories;
-using Microsoft.Identity.Web;
+using ControleGastos.Infrastructure;
+using ControleGastos.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 
 namespace ControleGastos.Api
@@ -24,7 +25,17 @@ namespace ControleGastos.Api
         {
             // Configure Azure AD Authentication
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd"));
+                    .AddJwtBearer(options =>
+                    {
+                        options.Authority = "https://login.microsoftonline.com/common/v2.0";
+                        options.Audience = "a0e8ed63-ce40-4d38-8e25-2f3cc5e581f1";
+                        options.TokenValidationParameters = new TokenValidationParameters
+                        {
+                            ValidateIssuer = false, // Desabilite temporariamente para testar
+                            ValidateAudience = true,
+                            ValidateLifetime = true
+                        };
+                    });
 
             services.AddAuthorization();
 
