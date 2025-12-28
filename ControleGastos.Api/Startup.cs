@@ -34,12 +34,65 @@ namespace ControleGastos.Api
                             ValidateIssuer = false, // Required for personal accounts from different tenants
                             ValidateAudience = true,
                             ValidateLifetime = true,
-                            ValidAudience = Configuration["AzureAd:ClientId"],
-                            // Accept tokens from any Microsoft tenant
-                            ValidIssuers = new[]
+                            ValidAudience = Configuration["AzureAd:ClientId"]
+                        };
+
+                        // Enhanced logging for debugging
+                        options.Events = new JwtBearerEvents
+                        {
+                            OnMessageReceived = context =>
                             {
-                                "https://login.microsoftonline.com/common/v2.0",
-                                "https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0"
+                                var token = context.Request.Headers["Authorization"].ToString();
+                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
+                                logger.LogInformation($"🔑 Token received: {(!string.IsNullOrEmpty(token) ? "YES" : "NO")}");
+                                logger.LogInformation($"📍 Request Path: {context.Request.Path}");
+                                logger.LogInformation($"🌐 Origin: {context.Request.Headers["Origin"]}");
+                                return Task.CompletedTask;
+                            },
+                            OnTokenValidated = context =>
+                            {
+                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
+                                logger.LogInformation("✅ Token validated successfully");
+                                
+                                var claims = context.Principal?.Claims;
+                                if (claims != null)
+                                {
+                                    foreach (var claim in claims.Take(10))
+                                    {
+                                        logger.LogInformation($"   Claim: {claim.Type} = {claim.Value}");
+                                    }
+                                }
+                                return Task.CompletedTask;
+                            },
+                            OnAuthenticationFailed = context =>
+                            {
+                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
+                                logger.LogError($"❌ Authentication failed: {context.Exception.Message}");
+                                logger.LogError($"   Exception Type: {context.Exception.GetType().Name}");
+                                
+                                if (context.Exception.InnerException != null)
+                                {
+                                    logger.LogError($"   Inner Exception: {context.Exception.InnerException.Message}");
+                                }
+                                
+                                return Task.CompletedTask;
+                            },
+                            OnChallenge = context =>
+                            {
+                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
+                                logger.LogWarning($"⚠️ Challenge triggered");
+                                logger.LogWarning($"   Error: {context.Error}");
+                                logger.LogWarning($"   ErrorDescription: {context.ErrorDescription}");
+                                logger.LogWarning($"   AuthenticateFailure: {context.AuthenticateFailure?.Message}");
+                                return Task.CompletedTask;
+                            },
+                            OnForbidden = context =>
+                            {
+                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
+                                logger.LogWarning("🚫 Access forbidden (403)");
+                                logger.LogWarning($"   User: {context.HttpContext.User?.Identity?.Name ?? "Anonymous"}");
+                                logger.LogWarning($"   IsAuthenticated: {context.HttpContext.User?.Identity?.IsAuthenticated}");
+                                return Task.CompletedTask;
                             }
                         };
                     });
@@ -131,9 +184,10 @@ namespace ControleGastos.Api
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "ControleGastos API v1");
             });
 
-
-            app.UseDeveloperExceptionPage();
-
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
 
             app.UseHttpsRedirection();
             app.UseRouting();
